@@ -579,3 +579,165 @@ func (l *Lllnumeric) Load(raw []byte, encoder, lenEncoder, length int) (read int
 	}
 	return read, nil
 }
+
+// Llalphanumeric contains bytes in non-fixed length field, first 2 symbols of field contains length
+type Llalphanumeric struct {
+	Value string
+}
+
+// NewLlalphanumeric create new Llalphanumeric field
+func NewLlalphanumeric(val string) *Llalphanumeric {
+	return &Llalphanumeric{val}
+}
+
+// IsEmpty check Llalphanumeric field for empty value
+func (l *Llalphanumeric) IsEmpty() bool {
+	return len(l.Value) == 0
+}
+
+// Bytes encode Llalphanumeric field to bytes
+func (l *Llalphanumeric) Bytes(encoder, lenEncoder, length int) ([]byte, error) {
+	if length != -1 && len(l.Value) > length {
+		return nil, errors.New(fmt.Sprintf(ERR_VALUE_TOO_LONG, "Llalphanumeric", length, len(l.Value)))
+	}
+	if encoder != ASCII {
+		return nil, errors.New(ERR_INVALID_ENCODER)
+	}
+
+	lenStr := fmt.Sprintf("%02d", len(l.Value))
+	contentLen := []byte(lenStr)
+	var lenVal []byte
+	switch lenEncoder {
+	case ASCII:
+		lenVal = contentLen
+		if len(lenVal) > 2 {
+			return nil, errors.New(ERR_INVALID_LENGTH_HEAD)
+		}
+	case rBCD:
+		fallthrough
+	case BCD:
+		lenVal = rbcd(contentLen)
+		if len(lenVal) > 1 {
+			return nil, errors.New(ERR_INVALID_LENGTH_HEAD)
+		}
+	default:
+		return nil, errors.New(ERR_INVALID_LENGTH_ENCODER)
+	}
+	return append(lenVal, l.Value...), nil
+}
+
+// Load decode Llalphanumeric field from bytes
+func (l *Llalphanumeric) Load(raw []byte, encoder, lenEncoder, length int) (read int, err error) {
+	// parse length head:
+	var contentLen int
+	switch lenEncoder {
+	case ASCII:
+		read = 2
+		contentLen, err = strconv.Atoi(string(raw[:read]))
+		if err != nil {
+			return 0, errors.New(ERR_PARSE_LENGTH_FAILED + ": " + string(raw[:2]))
+		}
+	case rBCD:
+		fallthrough
+	case BCD:
+		read = 1
+		contentLen, err = strconv.Atoi(string(bcdr2Ascii(raw[:read], 2)))
+		if err != nil {
+			return 0, errors.New(ERR_PARSE_LENGTH_FAILED + ": " + string(raw[0]))
+		}
+	default:
+		return 0, errors.New(ERR_INVALID_LENGTH_ENCODER)
+	}
+	if len(raw) < (read + contentLen) {
+		return 0, errors.New(ERR_BAD_RAW)
+	}
+	// parse body:
+	l.Value = string(raw[read : read+contentLen])
+	read += contentLen
+	if encoder != ASCII {
+		return 0, errors.New(ERR_INVALID_ENCODER)
+	}
+
+	return read, nil
+}
+
+// Lllalphanumeric contains bytes in non-fixed length field, first 3 symbols of field contains length
+type Lllalphanumeric struct {
+	Value string
+}
+
+// NewLllalphanumeric create new Lllalphanumeric field
+func NewLllalphanumeric(val string) *Lllalphanumeric {
+	return &Lllalphanumeric{val}
+}
+
+// IsEmpty check Lllalphanumeric field for empty value
+func (l *Lllalphanumeric) IsEmpty() bool {
+	return len(l.Value) == 0
+}
+
+// Bytes encode Lllalphanumeric field to bytes
+func (l *Lllalphanumeric) Bytes(encoder, lenEncoder, length int) ([]byte, error) {
+	if length != -1 && len(l.Value) > length {
+		return nil, errors.New(fmt.Sprintf(ERR_VALUE_TOO_LONG, "Lllalphanumeric", length, len(l.Value)))
+	}
+	if encoder != ASCII {
+		return nil, errors.New(ERR_INVALID_ENCODER)
+	}
+
+	lenStr := fmt.Sprintf("%03d", len(l.Value))
+	contentLen := []byte(lenStr)
+	var lenVal []byte
+	switch lenEncoder {
+	case ASCII:
+		lenVal = contentLen
+		if len(lenVal) > 3 {
+			return nil, errors.New(ERR_INVALID_LENGTH_HEAD)
+		}
+	case rBCD:
+		fallthrough
+	case BCD:
+		lenVal = rbcd(contentLen)
+		if len(lenVal) > 2 || len(contentLen) > 3 {
+			return nil, errors.New(ERR_INVALID_LENGTH_HEAD)
+		}
+	default:
+		return nil, errors.New(ERR_INVALID_LENGTH_ENCODER)
+	}
+	return append(lenVal, l.Value...), nil
+}
+
+// Load decode Lllalphanumeric field from bytes
+func (l *Lllalphanumeric) Load(raw []byte, encoder, lenEncoder, length int) (read int, err error) {
+	// parse length head:
+	var contentLen int
+	switch lenEncoder {
+	case ASCII:
+		read = 3
+		contentLen, err = strconv.Atoi(string(raw[:read]))
+		if err != nil {
+			return 0, errors.New(ERR_PARSE_LENGTH_FAILED + ": " + string(raw[:3]))
+		}
+	case rBCD:
+		fallthrough
+	case BCD:
+		read = 2
+		contentLen, err = strconv.Atoi(string(bcdr2Ascii(raw[:read], 3)))
+		if err != nil {
+			return 0, errors.New(ERR_PARSE_LENGTH_FAILED + ": " + string(raw[:2]))
+		}
+	default:
+		return 0, errors.New(ERR_INVALID_LENGTH_ENCODER)
+	}
+	if len(raw) < (read + contentLen) {
+		return 0, errors.New(ERR_BAD_RAW)
+	}
+	// parse body:
+	l.Value = string(raw[read : read+contentLen])
+	read += contentLen
+	if encoder != ASCII {
+		return 0, errors.New(ERR_INVALID_ENCODER)
+	}
+
+	return read, nil
+}
